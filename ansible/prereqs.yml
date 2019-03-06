@@ -1,0 +1,34 @@
+---
+- hosts: all
+  tasks:
+  - name: Install prerequisites
+    become: yes
+    apt:
+      name: ['git', 'apt-transport-https', 'ca-certificates', 'curl', 'gnupg-agent',  'software-properties-common', 'openjdk-8-jdk', 'maven']
+      update_cache: yes
+  - name: Add Docker GPG key
+    become: yes
+    apt_key: url=https://download.docker.com/linux/ubuntu/gpg
+  - name: Add Docker APT repository
+    become: yes
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ansible_distribution_release}} stable
+      state: present
+  - name: Install Docker
+    become: yes
+    apt: 
+      name: ['docker-ce', 'docker-ce-cli', 'containerd.io']
+  - name: Add vagrant to docker users
+    become: yes
+    user:
+      name: vagrant
+      groups: docker
+  - name: Install Mosquitto ppa
+    become: yes
+    apt_repository:
+      repo: ppa:mosquitto-dev/mosquitto-ppa
+      state: present
+  - name: Install Mosquitto
+    become: yes
+    apt:
+      name: ['mosquitto', 'mosquitto-clients']
