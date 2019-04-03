@@ -1,0 +1,68 @@
+---
+- name: Ask user for the input
+  hosts: local
+  tags: always
+  vars:
+    defaults:
+      server_name_prefix: tiad
+      num_vms: 1
+      ssh_source_cidr: '0.0.0.0/0'
+    providers_map:
+      - { name: Amazon EC2, alias: ec2 }
+      - { name: Install to existing ubuntu 18.04 server (local), alias: local }
+  vars_files:
+    - config.cfg
+
+  tasks:
+    - pause:
+        prompt: |
+          What provider would you like to use?
+            {% for p in providers_map %}
+            {{ loop.index }}. {{ p['name'] }}
+            {% endfor %}
+
+          Enter the number of your desired provider
+      register: _tiad_provider
+      when: provider is undefined
+
+    - name: Set facts based on the input
+      set_fact:
+        tiad_provider: "{{ provider | default(providers_map[_tiad_provider.user_input|default(omit)|int - 1]['alias']) }}"
+
+    - pause:
+        prompt: |
+          What prefix should the servers' names have?
+          [tiad]
+      register: _tiad_server_name_prefix
+      when: server_name_prefix is undefined
+
+    - pause: 
+        prompt: |
+          How many Virtual Machines (VMs) should be provisioned?
+          [1]
+      register: _tiad_num_vms
+      when: num_vms is undefined
+
+    - pause:
+        prompt: |
+          What CIDR should be allowed to access the VMs?
+          Defaults to 0.0.0.0/0, allowing access from anywhere.
+          [0.0.0.0/0]
+      register: _tiad_ssh_source_cidr
+      when: ssh_source_cidr is undefined
+
+    - name: Set facts based on user input
+      set_fact:
+        tiad_server_name_prefix: >-
+          {% if server_name_prefix is defined %}{% set _server_name_prefix = server_name_prefix %}
+          {%- elif _tiad_server_name_prefix.user_input is defined and _tiad_server_name_prefix.user_input != "" %}{% set _server_name_prefix = _tiad_server_name_prefix.user_input %}
+          {%- else %}{% set _server_name_prefix = defaults['server_name_prefix'] %}{% endif -%}
+          {{ _server_name_prefix | regex_replace('(?!\.)(\W|_)', '-') }}
+        tiad_num_vms: >-
+          {% if num_vms is defined %}{{ num_vms }}
+          {%- elif _tiad_num_vms.user_input is defined and _tiad_num_vms.user_input != "" %}{{ _tiad_num_vms.user_input }}
+          {%- else %}{{ defaults['num_vms'] }}{% endif -%}
+        tiad_ssh_source_cidr: >-
+          {% if ssh_source_cidr is defined %}{{ ssh_source_cidr }}
+          {%- elif _tiad_ssh_source_cidr.user_input is defined and _tiad_ssh_source_cidr.user_input != "" %}{% set _ssh_source_cidr = _tiad_ssh_source_cidr.user_input %}
+          {%- else %}{% set _ssh_source_cidr = defaults['ssh_source_cidr'] %}{% endif -%}

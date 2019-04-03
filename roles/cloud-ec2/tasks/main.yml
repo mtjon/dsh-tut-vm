@@ -1,0 +1,42 @@
+---
+- block:
+  - name: Build python virtual env
+    import_tasks: venv.yml
+
+  - block:
+    - name: Include prompts
+      import_tasks: prompts.yml
+
+    - set_fact:
+        tiad_region: >-
+          {% if region is defined %}{{ region }}
+          {%- elif _tiad_region.user_input is defined and _tiad_region.user_input != "" %}{{ aws_regions[_tiad_region.user_input | int - 1]['region_name'] }}
+          {%- else %}{{ aws_regions[default_region | int - 1]['region_name'] }}{% endif %}
+        stack_name: "{{ tiad_server_name_prefix | replace('.', '-') }}"
+
+    - name: Locate official AMI for region
+      ec2_ami_facts:
+        aws_access_key: "{{ access_key }}"
+        aws_secret_key: "{{ secret_key }}"
+        owners: "{{ cloud_providers.ec2.image.owner }}"
+        region: "{{ tiad_region }}"
+        filters:
+          name: "ubuntu/images/hvm-ssd/{{ cloud_providers.ec2.image.name }}-amd64-server-*"
+      register: ami_search
+
+    - name: Set the ami id as a fact
+      set_fact:
+        ami_image: >-
+          {{ (ami_search.images | sort(attribute='creation_date') | last)['image_id'] }}
+
+    - name: Deploy the stack
+      import_tasks: cloudformation.yml
+
+    - set_fact:
+        cloud_instance_ip: "{{ stack.stack_outputs.PublicIP }}"
+        ansible_ssh_user: ubuntu
+  rescue:
+    - debug: var=fail_hint
+      tags: always
+    - fail:
+      tags: always

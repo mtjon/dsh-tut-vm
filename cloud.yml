@@ -1,0 +1,33 @@
+---
+- name: Provision the servers
+  hosts: local
+  tags: always
+  vars_files:
+    - config.cfg
+
+  pre_tasks:
+    - block:
+      - name: Local pre-tasks
+        import_tasks: playbooks/cloud-pre.yml
+        tags: always
+      rescue:
+        - debug: var=fail_hint
+          tags: always
+        - fail:
+          tags: always
+
+  roles:
+    - role: cloud-ec2
+      when: tiad_provider == "ec2"
+
+  post_tasks:
+    - block:
+      - name: Local post-tasks
+        import_tasks: playbooks/cloud-post.yml
+        become: false
+        tags: cloud
+      rescue:
+        - debug: var=fail_hint
+          tags: always
+        - fail:
+          tags: always

@@ -6,3 +6,4 @@ Accompanying environment for the [dsh tutorials](https://github.com/kpn-dsh/intr
 
 * [vagrant](https://www.vagrantup.com/)
 * [ansible](https://www.ansible.com/)
+Dependency: python3

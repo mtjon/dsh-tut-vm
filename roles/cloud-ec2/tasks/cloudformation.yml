@@ -1,0 +1,34 @@
+---
+- name: Add keypair for cloudformation
+  ec2_key:
+    aws_access_key: "{{ access_key }}"
+    aws_secret_key: "{{ secret_key }}"
+    region: "{{ tiad_region }}"
+    state: "present"
+    name: "{{ tiad_server_name_prefix }}"
+    key_material: "{{ lookup('file', SSH_keys.public) }}"
+  register: _ec2_key
+
+- name: Set facts based on keypair
+  set_fact:
+    tiad_ec2_key: >-
+      {% if ec2_key is defined %}{{ ec2_key }}
+      {%- elif _ec2_key.key.name is defined and _ec2_key.key.name != "" %}{{ _ec2_key.key.name }}{% endif %}
+
+- name: Deploy the template
+  cloudformation:
+    aws_access_key: "{{ access_key }}"
+    aws_secret_key: "{{ secret_key }}"
+    stack_name: "{{ stack_name }}"
+    state: "present"
+    region: "{{ tiad_region }}"
+    template: roles/cloud-ec2/files/simple-stack.yml
+    template_parameters:
+      InstanceType: "{{ cloud_providers.ec2.size }}"
+      SSHLocation: "{{ tiad_ssh_source_cidr }}"
+      PublicSSHKey: "{{ lookup('file', SSH_keys.public) }}"
+      ImageId: "{{ ami_image }}"
+      KeyName: "{{ tiad_ec2_key }}"
+    tags:
+      Environment: tiad
+  register: stack

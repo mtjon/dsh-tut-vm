@@ -1,0 +1,40 @@
+---
+- name: Configure the server and install required software
+  hosts: workshop-host
+  gather_facts: false
+  tags: tiad
+  become: true
+  vars_files:
+    - config.cfg
+
+  roles:
+    - role: common
+      tags: common
+    - role: docker
+      tags: docker
+    - role: tiad
+      tags: tiad
+
+  post_tasks:
+    - block:
+      - name: Dump the configuration
+        local_action:
+          module: copy
+          dest: "configs/{{ IP_subject_alt_name }}/.config.yml"
+          content: |
+            server: {{ 'localhost' if inventory_hostname == 'localhost' else inventory_hostname }}
+            server_user: {{ ansible_ssh_user }}
+            {% if tiad_provider != "local" %}
+            ansible_ssh_private_key_file: {{ ansible_ssh_private_key_file|default(SSH_keys.private) }}
+            {% endif %}
+            tiad_provider: {{ tiad_provider }}
+            tiad_server_name_prefix: {{ tiad_server_name_prefix }}
+            IP_subject_alt_name: {{ IP_subject_alt_name }}
+        become: false
+
+      tags: always
+      rescue:
+        - debug: var=fail_hint
+          tags: always
+        - fail:
+          tags: always

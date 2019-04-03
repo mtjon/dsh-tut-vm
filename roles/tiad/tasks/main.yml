@@ -1,0 +1,48 @@
+---
+- block:
+  - name: Install TiaD prerequisites
+    become: yes
+    apt:
+      name: ['git', 'openjdk-8-jdk', 'maven', 'python3-pip']
+      update_cache: yes
+  - name: Install Mosquitto ppa
+    become: yes
+    apt_repository:
+      repo: ppa:mosquitto-dev/mosquitto-ppa
+      state: present
+  - name: Install Mosquitto
+    become: yes
+    apt:
+      name: ['mosquitto', 'mosquitto-clients']
+      #  - name: Install pipenv
+      #    pip:
+      #      name: pipenv
+      #      extra_args: --user
+      #  - name: Add Node.js GPG key
+      #    become: yes
+      #    apt_key: url=https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+      #  - name: Add Node.js APT repository
+      #    become: yes
+      #    apt_repository:
+      #      repo: deb https://deb.nodesource.com/node_11.x {{ansible_distribution_release}} main
+      #      state: present
+      #  - name: Install Node.js
+      #    become: yes
+      #    apt: 
+      #      name: ['nodejs']
+      #  - name: Config npm
+      #    shell: |
+      #      mkdir "${HOME}/.npm-packages"
+      #      touch "${HOME}/.npmrc"
+      #      echo 'prefix=${HOME}/.npm-packages' >> ${HOME}/.npmrc
+      #      echo 'NPM_PACKAGES="${HOME}/.npm-packages"' >> ${HOME}/.bashrc
+      #      echo 'export PATH="$NPM_PACKAGES/bin:$PATH"' >> ${HOME}/.bashrc
+      #      echo 'unset MANPATH' >> ${HOME}/.bashrc
+      #      echo 'export MANPATH="$NPM_PACKAGES/share/man:$(manpath)"' >> ${HOME}/.bashrc
+      #    args:
+      #      chdir: ${HOME}
+      #      executable: /bin/bash
+      #  - name: Install reveal-md
+      #    npm: 
+      #      name: reveal-md
+      #      global: yes

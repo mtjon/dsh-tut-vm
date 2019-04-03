@@ -1,0 +1,40 @@
+---
+- name: Display the invocation environment
+  local_action:
+    module: shell
+      ./tiad-showenv.sh \
+        'tiad_provider "{{ tiad_provider }}"' \
+        'tiad_num_vms "{{ tiad_num_vms }}"' \
+        > /dev/tty
+  tags: debug
+
+- name: Print some debug info
+  vars:
+    msg: |
+      Ansible Python Interpreter: {{ ansible_python_interpreter }}
+  debug:
+    msg: "{{ msg.split('\n') }}"
+  tags: debug
+
+- name: Install local requirements
+  local_action:
+    module: pip
+    state: latest
+    name:
+      - pyOpenSSL
+  tags: always
+
+- name: Generate the SSH private keys
+  openssl_privatekey:
+    path: "{{ SSH_keys.private }}"
+    size: 2048
+    mode: "0600"
+    type: RSA
+  when: tiad_provider != "local"
+
+- name: Generate SSH public key
+  openssl_publickey:
+    path: "{{ SSH_keys.public }}"
+    privatekey_path: "{{ SSH_keys.private }}"
+    format: OpenSSH
+  when: tiad_provider != "local"
